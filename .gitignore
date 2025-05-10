@@ -1,0 +1,8 @@
+*venv
+.env
+unsloth*
+_unsloth*
+out*
+mlruns
+shevchenko_finetuned_lora
+.vscode
