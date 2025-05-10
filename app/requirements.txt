@@ -1,0 +1,10 @@
+fastapi[standard]      # FastAPI + its “standard” dependencies (Pydantic, Starlette, etc.) :contentReference[oaicite:0]{index=0}
+uvicorn[standard]      # ASGI server for FastAPI :contentReference[oaicite:1]{index=1}
+transformers           # BLIP‑2 processor & model support :contentReference[oaicite:2]{index=2}
+bitsandbytes           # 8‑bit/4‑bit quantization & optimizers :contentReference[oaicite:3]{index=3}
+torch                  # PyTorch (ensure you match your CUDA version) :contentReference[oaicite:4]{index=4}
+accelerate             # (optional) Hugging Face Accelerate for device mapping :contentReference[oaicite:5]{index=5}
+Pillow                 # Image I/O & processing :contentReference[oaicite:6]{index=6}
+deepl                  # DeepL API client :contentReference[oaicite:7]{index=7}
+python-dotenv          # load .env files into environment :contentReference[oaicite:8]{index=8}
+torchvision            # (optional) PyTorch image transforms :contentReference[oaicite:9]{index=9}

@@ -1,64 +1,67 @@
 import streamlit as st
 import requests
 from PIL import Image
-from transformers import AutoProcessor, BlipForConditionalGeneration
+from io import BytesIO
+import base64
 
+FASTAPI_URL = "http://localhost:8000"
 
-def generate_poem(topic):
-    """
-    Sends a POST request to the FastAPI server at http://localhost:8000/poem/invoke 
-    to generate a poem on the provided topic.
+def encode_image_to_base64(image):
+    buffered = BytesIO()
+    image.save(buffered, format="JPEG")
+    return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
-    Args:
-        topic (str): The topic for the poem.
-
-    Returns:
-        str: The generated poem content or an error message if the request fails.
-    """
-    response = requests.post("http://localhost:8000/poem/invoke",
-                                json={'input':{'topic':topic}})
+def generate_poem_from_image(image, adapter="out_jsonl", use_gemini=False):
+    img_base64 = encode_image_to_base64(image)
+    params = {
+        "adapter": adapter,
+        "use_gemini": 1
+    }
+    response = requests.post(
+        f"{FASTAPI_URL}/generate",
+        params=params,
+        json={"image_base64": img_base64}
+    )
     if response.status_code == 200:
-        return response.json()['output']
+        return response.json()
     else:
-        return "Error: Unable to generate poem."
-    
-@st.cache_resource
-def load_blip_model():
-    processor = AutoProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
-    model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
-    return processor, model
-
-def generate_image_caption(image):
-    processor, model = load_blip_model()
-
-    text = "A picture of"
-    inputs = processor(images=image, text=text, return_tensors="pt")
-
-    outputs = model(**inputs)
-    print(outputs)
-    return outputs
+        st.error(f"API error: {response.status_code} - {response.text}")
+        return None
 
 def main():
-    """
-    The main function that runs the Streamlit application.
-    """
-    st.title("Генератор віршів за зображенням")
+    st.title("Poem generator")
+    st.write("Upload image")
 
-    st.write("Цей додаток дозволяє створити вірш на основі завантаженого зображення.")
+    adapter = st.selectbox("Оберіть адаптер", ["out_jsonl", "out_raw", "out_small"])
+    use_gemini = st.checkbox("Use gemini")
 
-    uploaded_file = st.file_uploader("Завантажте зображення", type=["jpg", "jpeg", "png"])
+    uploaded_file = st.file_uploader("Image(JPEG/PNG)", type=["jpg", "jpeg", "png"])
+    
 
     if uploaded_file is not None:
         image = Image.open(uploaded_file)
-        generate_image_caption(image)
-        st.image(image, caption="Завантажене зображення", use_column_width=True)
+        # convert to jpg
+        if image.format != "JPEG":
+            image = image.convert("RGB")
+            buffered = BytesIO()
+            image.save(buffered, format="JPEG")
+            image = Image.open(buffered)
+        st.image(image, caption="Uploaded image")
 
-        if st.button("Згенерувати вірш"):
-            result = generate_poem("blank")
-            st.subheader("Згенерований вірш")
-            st.write(result)
+        if st.button("Generate poem"):
+            with st.spinner("Generating"):
+                result = generate_poem_from_image(image, adapter, use_gemini)
+            if result:
+
+                st.subheader("✍️ Generated with pretrained")
+                #write with newlines 
+                st.text(result['poem'])
+
+
+                st.subheader("Other method")
+                st.text(result['llm_output'])
     else:
-        st.write("Будь ласка, завантажте зображення.")
+        st.info("Upload image")
 
 if __name__ == "__main__":
-  main()
+    main()
